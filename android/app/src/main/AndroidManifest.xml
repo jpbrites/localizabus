@@ -3,6 +3,8 @@
         android:label="localizabus_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyBW1Gq1oureUrpd8cSfpUr5VN_-5RoFhNc"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

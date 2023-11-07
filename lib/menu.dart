@@ -44,7 +44,7 @@ class MenuLateral extends StatelessWidget {
                 height: 55,
                 child: MaterialButton(
                   onPressed: () {
-                    
+                    Navigator.of(context).pushNamed('/login-screen');
                   },
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0), 

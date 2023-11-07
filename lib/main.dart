@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:localizabus_app/login.dart';
 import 'package:localizabus_app/map_screen.dart';
 import 'package:localizabus_app/splash_screen.dart';
 
@@ -22,6 +23,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (context) => const SplashScreen(),
         '/home-screen': (context) => const MapScreen(),
+        '/login-screen': (context) => const LoginScreen(),
       },
     );
   }

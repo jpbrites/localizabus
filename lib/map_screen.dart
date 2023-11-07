@@ -78,7 +78,6 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
     } else {
-      // Handle errors here, such as a non-200 status code
       print("Failed to fetch data: ${response.statusCode}");
     }
   }
@@ -90,7 +89,6 @@ class _MapScreenState extends State<MapScreen> {
    /*void connectToWebSocket() {
     channel = IOWebSocketChannel.connect('67.205.172.182:3333/listCoordinates');
     channel!.stream.listen((message) {
-      // Parse the received message (assuming it's in JSON format)
       Map<String, dynamic> jsonData = json.decode(message);
       if (jsonData.containsKey("coordinates")) {
         List<dynamic> coordinates = jsonData["coordinates"];

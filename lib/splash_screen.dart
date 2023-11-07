@@ -27,18 +27,11 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           children: [
             Expanded(
-            child: Center(
-              child: 
-                Padding(
-                  padding: const EdgeInsets.only(top: 40),
-                  child: Image.asset('assets/logo_bus.png', width: 300),
-              )
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 19.0),
-              child: Image.asset('assets/logo_univasf_new.png', width: 180),
-              )
+              child: Center(
+                child:
+                Image.asset('assets/logo_app.png', width: 300),
+                )
+            )
           ],
         ),
       ),

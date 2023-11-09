@@ -13,17 +13,17 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-       title: 'Localizabus',
+      title: 'Localizabus',
       debugShowCheckedModeBanner: false,
       locale: const Locale('pt', 'BR'),
       routes: {
         '/': (context) => const SplashScreen(),
         '/home-screen': (context) => const MapScreen(),
         '/login-screen': (context) => const LoginScreen(),
+        //'/': (context) => const LoginScreen(),
       },
     );
   }

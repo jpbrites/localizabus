@@ -16,11 +16,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
- 
-
   LatLng initialLocation = const LatLng(-9.401404, -40.503057);
   BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarker;
-  /*List<MapMarker> markers = [
+
+  List<MapMarker> markers = [
     MapMarker(
       name: "Marker 1",
       position: LatLng(-9.412412, -40.505632),
@@ -29,23 +28,23 @@ class _MapScreenState extends State<MapScreen> {
       name: "Marker 2",
       position: LatLng(-9.400176, -40.496104),
     ),
-  ];*/
+  ];
 
-  Set<MapMarker> markers = Set<MapMarker>(); //*
+  //Set<MapMarker> markers = Set<MapMarker>(); //*
   late GoogleMapController mapController;
   WebSocketChannel? channel; //*
-
 
   @override
   void initState() {
     super.initState();
-    addCustomIcon(); 
-     fetchDataFromHTTP();
+    addCustomIcon();
+    // fetchDataFromHTTP();
   }
 
   void addCustomIcon() {
     BitmapDescriptor.fromAssetImage(
-      ImageConfiguration(), "assets/marker_final.png",
+      ImageConfiguration(),
+      "assets/marker_final.png",
     ).then(
       (icon) {
         setState(() {
@@ -55,8 +54,9 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-   void fetchDataFromHTTP() async {
-    final response = await http.get(Uri.parse('http://67.205.172.182:3333/listCoordinates'));
+  void fetchDataFromHTTP() async {
+    final response =
+        await http.get(Uri.parse('http://67.205.172.182:3333/listCoordinates'));
 
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);
@@ -86,7 +86,7 @@ class _MapScreenState extends State<MapScreen> {
   void dispose() {
     super.dispose();
   }
-   /*void connectToWebSocket() {
+  /*void connectToWebSocket() {
     channel = IOWebSocketChannel.connect('67.205.172.182:3333/listCoordinates');
     channel!.stream.listen((message) {
       Map<String, dynamic> jsonData = json.decode(message);
@@ -145,18 +145,19 @@ class _MapScreenState extends State<MapScreen> {
           target: initialLocation,
           zoom: 15,
         ),
-        markers: Set<Marker>.from(markers.map((marker) {
-          return Marker(
-            markerId: MarkerId(marker.name),
-            position: marker.position,
-            icon: markerIcon,
-            infoWindow: InfoWindow(
-              title: marker.name,
-            ),
-          );
-        }),
+        markers: Set<Marker>.from(
+          markers.map((marker) {
+            return Marker(
+              markerId: MarkerId(marker.name),
+              position: marker.position,
+              icon: markerIcon,
+              infoWindow: InfoWindow(
+                title: marker.name,
+              ),
+            );
+          }),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

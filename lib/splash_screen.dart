@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,13 +12,26 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    isLogged().then((value){
+      if(value){
+        Navigator.of(context).pushReplacementNamed('/busSelectPage');
+      }
+      else{
+        Timer(
+          const Duration(seconds: 5),
+              () {
+            Navigator.of(context).pushReplacementNamed('/home-screen');
+          },
+        );
+      }
+    });
 
-    Timer(
+    /*Timer(
       const Duration(seconds: 5), 
       () {
         Navigator.of(context).pushReplacementNamed('/home-screen');
       },
-    );
+    );*/
   }
 
   @override
@@ -36,5 +50,15 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
       ),
     );
+  }
+}
+
+Future<bool> isLogged() async{
+  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+  if(sharedPreferences.getString('token') != null){
+    return true; //caso exista um token, Usuario Logado!
+  }
+  else{
+    return false;
   }
 }

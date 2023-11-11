@@ -11,21 +11,16 @@ class LoginScreen extends StatefulWidget {
 }
 
 
-final _formkey = GlobalKey<FormState>();
-final _emailController = TextEditingController();
-final _passwordController = TextEditingController();
-
 class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
   }
 
-  /*
+
   final _formkey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  */
 
 
   @override
@@ -69,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       controller: _passwordController,
                       keyboardType: TextInputType.text,
+                      obscureText: true,
                       validator: (senha){
                         if(senha == null || senha.isEmpty){
                           return'Por favor, digite sua senha';
@@ -82,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () async {
                         FocusScopeNode currentFocus = FocusScope.of(context);
                         if(_formkey.currentState!.validate()){
-                            bool form_OK = await request_Login();
+                            bool form_OK = await request_Login(_emailController.text,_passwordController.text );
                             if(!currentFocus.hasPrimaryFocus){
                               currentFocus.unfocus();
                             }
@@ -123,27 +119,28 @@ final snackBar = SnackBar(
     )
 );
 
-Future<bool> request_Login( ) async {
+Future<bool> request_Login(email, password) async {
   SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
-  //var url= Uri.parse('http://67.205.172.182:3333/sessions'); // LocalizaBUS
-  var url= Uri.parse('https://restful-booker.herokuapp.com/auth');
- /* var response= await http.post(url,
-    body: {
-      "email": _emailController.text,
-      "password": _passwordController.text,
-    },
-  );*/
+  var url= Uri.parse('http://67.205.172.182:3333/sessions'); // LocalizaBUS
+
   var response= await http.post(url,
-    body: {
-      "username": _emailController.text,
-      "password": _passwordController.text,
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
     },
+    body: jsonEncode(<String, String> {
+      "email":"${email}",
+      "password":"${password}"
+    }),
+
   );
-  if(response.statusCode == 200){ //nao esta verficando a existencia do token
-    print(jsonDecode(response.body)['reason']);
-    return true;
-  }else{
-    print('NAO AUTORIZADO');
-    return false;
-  }
+
+    if(response.statusCode == 200){
+      await sharedPreferences.setString('token','${jsonDecode(response.body)['token']}');
+      return true;
+    }
+    else {
+        return false;
+      }
+
 }
+

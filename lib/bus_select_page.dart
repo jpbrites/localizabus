@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BusSelectPage extends StatefulWidget {
   const BusSelectPage({super.key});
@@ -34,11 +35,14 @@ class _BusSelectPageState extends State<BusSelectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: Container(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
+
         child: Stack(
           children: <Widget>[
+            //ElevatedButton(onPressed: (){}, child: Icon(Icons.ice_skating)),
             Image.asset('assets/logo_app.png',
                 width: MediaQuery.of(context).size.width,
                 height: MediaQuery.of(context).size.height * 0.5),
@@ -144,10 +148,38 @@ class _BusSelectPageState extends State<BusSelectPage> {
                       )),
                     )
                   ]),
-                ))
+                )),
+            Positioned(
+                top: MediaQuery.of(context).size.height * 0.05,
+                right:  MediaQuery.of(context).size.width * 0.01,
+                height: 50,
+                child: ElevatedButton(onPressed: () async {
+                       bool loggout = await loggout_Motorist();
+                       if(loggout){
+                         Navigator.of(context).pushReplacementNamed('/home-screen');
+                       }
+
+                },
+                  style:  ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll<Color>(Colors.redAccent),
+                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                        RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(60),
+
+                        ),
+                    ),
+                  ),
+                  child: Icon(Icons.exit_to_app,size: 30,)))
           ],
         ),
       ),
     );
   }
+}
+
+
+Future <bool> loggout_Motorist() async{
+  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+  await sharedPreferences.clear();
+  return true;
 }

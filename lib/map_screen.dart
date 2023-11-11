@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -19,18 +20,8 @@ class _MapScreenState extends State<MapScreen> {
   LatLng initialLocation = const LatLng(-9.401404, -40.503057);
   BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarker;
 
-  List<MapMarker> markers = [
-    MapMarker(
-      name: "Marker 1",
-      position: LatLng(-9.412412, -40.505632),
-    ),
-    MapMarker(
-      name: "Marker 2",
-      position: LatLng(-9.400176, -40.496104),
-    ),
-  ];
-
-  //Set<MapMarker> markers = Set<MapMarker>(); //*
+  Timer? timer;
+  Set<MapMarker> markers = Set<MapMarker>();
   late GoogleMapController mapController;
   WebSocketChannel? channel; //*
 
@@ -38,7 +29,12 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     addCustomIcon();
-    // fetchDataFromHTTP();
+
+    fetchDataFromHTTP();
+    timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      //job
+      fetchDataFromHTTP();
+    });
   }
 
   void addCustomIcon() {
@@ -54,36 +50,77 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void fetchDataFromHTTP() async {
+  void fetchDataFromHTTP({int attemptsLeft = 3}) async {
+    var newMarkers = Set<MapMarker>();
     final response =
         await http.get(Uri.parse('http://67.205.172.182:3333/listCoordinates'));
 
-    if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
-      if (jsonData.containsKey("coordinates")) {
-        List<dynamic> coordinates = jsonData["coordinates"];
-        for (var coordinate in coordinates) {
-          double lat = double.parse(coordinate["lat"]);
-          double lng = double.parse(coordinate["long"]);
-          String name = coordinate["id"].toString();
-          print("Latitude: $lat, Longitude: $lng, Name: $name");
-          setState(() {
-            markers.add(
-              MapMarker(
-                name: name,
-                position: LatLng(lat, lng),
-              ),
-            );
-          });
-        }
+    if(attemptsLeft == 0) {
+      print("Failed to fetch 3 times in a row");
+      if(markers.isNotEmpty){
+        return;
       }
-    } else {
-      print("Failed to fetch data: ${response.statusCode}");
+      print("Adding default markers");
+      newMarkers.add(
+          MapMarker(
+            name: "Marker 1",
+            position: const LatLng(-9.412412, -40.505632),
+          )
+      );
+      newMarkers.add(
+          MapMarker(
+            name: "Marker 2",
+            position: const LatLng(-9.400176, -40.496104),
+          )
+      );
+
+      setState(() {
+        markers = newMarkers;
+      });
+      return;
     }
+
+    if (response.statusCode != 200) {
+      print("Failed to fetch data: ${response.statusCode}\nBody: ${response.body}");
+      sleep(const Duration(seconds: 1));
+      fetchDataFromHTTP(attemptsLeft: attemptsLeft - 1);
+      return;
+    }
+
+    final jsonData = json.decode(response.body);
+    if (!jsonData.containsKey("coordinates")) {
+      return;
+    }
+
+    List<dynamic> coordinates = jsonData["coordinates"];
+    for (var coordinate in coordinates) {
+      double lat = double.parse(coordinate["lat"]);
+      double lng = double.parse(coordinate["long"]);
+      String name = coordinate["letter"].toString();
+      print("Latitude: $lat, Longitude: $lng, Name: $name ");
+      newMarkers.add(
+        MapMarker(
+          name: name,
+          position: LatLng(lat, lng),
+        )
+      );
+    }
+
+    if(newMarkers.isEmpty){
+      print("Received empty values");
+      sleep(const Duration(seconds: 1));
+      fetchDataFromHTTP(attemptsLeft: attemptsLeft - 1);
+      return;
+    }
+
+    setState(() {
+      markers = newMarkers;
+    });
   }
 
   @override
   void dispose() {
+    timer?.cancel();
     super.dispose();
   }
   /*void connectToWebSocket() {

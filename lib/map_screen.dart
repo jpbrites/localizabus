@@ -17,23 +17,26 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  LatLng initialLocation = const LatLng(-9.401404, -40.503057);
+  LatLng initialLocation = const LatLng(-9.378346, -40.526745);
   BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarker;
 
   Timer? timer;
-  Set<MapMarker> markers = Set<MapMarker>();
+  Set<MapMarker> busMarkers = <MapMarker>{}, stopMarkers = <MapMarker>{};
   late GoogleMapController mapController;
-  WebSocketChannel? channel; //*
+  WebSocketChannel? channel;
+  bool showStops = false;
+  int route = 0;
 
   @override
   void initState() {
     super.initState();
     addCustomIcon();
 
-    fetchDataFromHTTP();
+    fetchDataFromHTTP(false);
+    fetchDataFromHTTP(true);
     timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       //job
-      fetchDataFromHTTP();
+      fetchDataFromHTTP(true);
     });
   }
 
@@ -50,14 +53,25 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void fetchDataFromHTTP({int attemptsLeft = 3}) async {
-    var newMarkers = Set<MapMarker>();
-    final response =
-        await http.get(Uri.parse('http://67.205.172.182:3333/listCoordinates'));
+  void fetchDataFromHTTP(bool isCoordinate, { int attemptsLeft = 3  }) async {
+    String url = 'http://67.205.172.182:3333/list${isCoordinate ? 'Coordinates' : 'Stops'}';
+    var newMarkers = <MapMarker>{};
+    final http.Response response;
+
+    if(route != 0){
+      response = await http.post(Uri.parse("${url}Filtered"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "route_id": route
+          })
+      );
+    }else{
+      response = await http.get(Uri.parse(url));
+    }
 
     if(attemptsLeft == 0) {
       print("Failed to fetch 3 times in a row");
-      if(markers.isNotEmpty){
+      if(!isCoordinate || busMarkers.isNotEmpty){
         return;
       }
       print("Adding default markers");
@@ -75,7 +89,7 @@ class _MapScreenState extends State<MapScreen> {
       );
 
       setState(() {
-        markers = newMarkers;
+        busMarkers = newMarkers;
       });
       return;
     }
@@ -83,20 +97,25 @@ class _MapScreenState extends State<MapScreen> {
     if (response.statusCode != 200) {
       print("Failed to fetch data: ${response.statusCode}\nBody: ${response.body}");
       sleep(const Duration(seconds: 1));
-      fetchDataFromHTTP(attemptsLeft: attemptsLeft - 1);
+      fetchDataFromHTTP(isCoordinate, attemptsLeft: attemptsLeft - 1);
       return;
     }
 
     final jsonData = json.decode(response.body);
-    if (!jsonData.containsKey("coordinates")) {
+    if (!jsonData.containsKey(isCoordinate ? "coordinates" : "stops")) {
+      fetchDataFromHTTP(isCoordinate, attemptsLeft: attemptsLeft - 1);
       return;
     }
 
-    List<dynamic> coordinates = jsonData["coordinates"];
+    List<dynamic> coordinates = jsonData[isCoordinate ? "coordinates" : "stops"];
     for (var coordinate in coordinates) {
       double lat = double.parse(coordinate["lat"]);
       double lng = double.parse(coordinate["long"]);
-      String name = coordinate["letter"].toString();
+      String name = coordinate[isCoordinate ? "letter" : "name"].toString();
+      if(!isCoordinate && route != 0){
+        name += ' ${coordinate["date"].toString()}';
+      }
+
       print("Latitude: $lat, Longitude: $lng, Name: $name ");
       newMarkers.add(
         MapMarker(
@@ -109,12 +128,16 @@ class _MapScreenState extends State<MapScreen> {
     if(newMarkers.isEmpty){
       print("Received empty values");
       sleep(const Duration(seconds: 1));
-      fetchDataFromHTTP(attemptsLeft: attemptsLeft - 1);
+      fetchDataFromHTTP(isCoordinate, attemptsLeft: attemptsLeft - 1);
       return;
     }
 
     setState(() {
-      markers = newMarkers;
+      if(isCoordinate){
+        busMarkers = newMarkers;
+      }else{
+        stopMarkers = newMarkers;
+      }
     });
   }
 
@@ -159,9 +182,49 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Set<Marker> markers = <Marker>{};
+    if(showStops){
+      for (var element in stopMarkers) {
+        markers.add(
+            Marker(
+              markerId: MarkerId(element.name),
+              position: element.position,
+              infoWindow: InfoWindow(
+                  title: element.name
+              ),
+            )
+        );
+      }
+    }
+    for (var element in busMarkers) {
+      markers.add(
+        Marker(
+          markerId: MarkerId(element.name),
+          position: element.position,
+          icon: markerIcon,
+          infoWindow: InfoWindow(
+            title: element.name,
+            onTap: (){
+              showStops ^= true;
+              if(showStops){
+                fetchDataFromHTTP(false);
+              }else{
+                setState(() {});
+              }
+            }
+          ),
+          onTap: (){
+            print("Clicked");
+            route ^= 1;
+            fetchDataFromHTTP(false);
+          }
+        )
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF0049AC),
+        backgroundColor: const Color(0xFF0049AC),
         title: const Text('LocalizaBus'),
         leading: Builder(
           builder: (context) {
@@ -180,20 +243,9 @@ class _MapScreenState extends State<MapScreen> {
         onMapCreated: _onMapCreated,
         initialCameraPosition: CameraPosition(
           target: initialLocation,
-          zoom: 15,
+          zoom: 13,
         ),
-        markers: Set<Marker>.from(
-          markers.map((marker) {
-            return Marker(
-              markerId: MarkerId(marker.name),
-              position: marker.position,
-              icon: markerIcon,
-              infoWindow: InfoWindow(
-                title: marker.name,
-              ),
-            );
-          }),
-        ),
+        markers: markers,
       ),
     );
   }

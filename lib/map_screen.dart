@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'map_marker.dart';
 import 'menu.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/io.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -23,7 +21,7 @@ class _MapScreenState extends State<MapScreen> {
   Timer? timer;
   Set<MapMarker> markers = Set<MapMarker>();
   late GoogleMapController mapController;
-  WebSocketChannel? channel; //*
+ 
 
   @override
   void initState() {
@@ -152,6 +150,7 @@ class _MapScreenState extends State<MapScreen> {
     channel?.sink.close();
     super.dispose();
   }*/
+
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;

@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class BusSelectPage extends StatefulWidget {
   const BusSelectPage({super.key});
@@ -8,29 +11,38 @@ class BusSelectPage extends StatefulWidget {
   State<BusSelectPage> createState() => _BusSelectPageState();
 }
 
+List<String> buss= [
+
+];
+
+var bus_list = [
+  'Onibus 1',
+
+
+];
+
+String selected_route = 'Selecione o onibus';
+String selected_bus = 'Onibus 1';
+
+var route_list = [
+  'Selecione o onibus',
+  'Route 12h',
+];
+
+
 class _BusSelectPageState extends State<BusSelectPage> {
+
+  @override
+  void initState() {
+    super.initState();
+    get_Bus();
+
+  }
 // Initial Selected Value
-  String selected_bus = 'Ônibus A';
+
 
   // List of items in our dropdown menu
-  var bus_list = [
-    'Ônibus A',
-    'Ônibus B',
-    'Ônibus C',
-    'Ônibus D',
-    'Ônibus E',
-    'Ônibus F',
-  ];
 
-  String selected_route = 'Route 10h';
-
-  var route_list = [
-    'Route 10h',
-    'Route 12h',
-    'Route 16h',
-    'Route 6h',
-    'Route 20h',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +110,9 @@ class _BusSelectPageState extends State<BusSelectPage> {
                         onChanged: (String? newValue) {
                           setState(() {
                             selected_bus = newValue!;
+                            int temp_bus=busName_to_Number(selected_bus);
+                            print(temp_bus);
+                            get_Routes(temp_bus);
                           });
                         },
                       )),
@@ -134,6 +149,7 @@ class _BusSelectPageState extends State<BusSelectPage> {
                           return (DropdownMenuItem(
                             value: items,
                             child: Container(
+
                               alignment: Alignment.center,
                               width: MediaQuery.of(context).size.width * 0.5,
                               child: Text(items),
@@ -143,11 +159,34 @@ class _BusSelectPageState extends State<BusSelectPage> {
                         onChanged: (String? newValue) {
                           setState(() {
                             selected_route = newValue!;
+
                           });
                         },
                       )),
+                    ),
+                    SizedBox(height: 25,),
+                    ElevatedButton(onPressed: (){},
+                      style: ButtonStyle(
+                        backgroundColor:  MaterialStatePropertyAll<Color>( Color(0xFF004AAD)),
+                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+
+                          ),
+                      )),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.45,
+                          height: MediaQuery.of(context).size.height * 0.06,
+                          child: Center(
+                            child: Text('Confirma',style: TextStyle(
+                              fontSize: 19,
+
+                            )),
+                          ),
+                        )
                     )
-                  ]),
+                  ]
+                  ),
                 )),
             Positioned(
                 top: MediaQuery.of(context).size.height * 0.05,
@@ -164,7 +203,7 @@ class _BusSelectPageState extends State<BusSelectPage> {
                     backgroundColor: MaterialStatePropertyAll<Color>(Colors.redAccent),
                     shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                         RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(60),
+                            borderRadius: BorderRadius.circular(6),
 
                         ),
                     ),
@@ -182,4 +221,128 @@ Future <bool> loggout_Motorist() async{
   SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
   await sharedPreferences.clear();
   return true;
+}
+
+Future<Map<String, dynamic>> get_Routes(int _bus_number) async{
+  SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
+  var url= Uri.parse('http://67.205.172.182:3333/listRoutes');
+
+  var response= await http.get(url);
+
+  if(response.statusCode == 200){
+    Map<String, dynamic> data = json.decode(response.body);
+
+    //Obtém a letra do onibus
+    String bus_Letter= int_to_letter(_bus_number);
+    print(bus_Letter);
+
+    // Obtém a lista de ônibus do mapa
+    List<dynamic> rotes = data['routes'];
+
+    // Cria um vetor para armazenar os nomes dos ônibus
+    List<String> rotesNames = [];
+
+    route_list.clear();
+    // Itera sobre a lista de ônibus e armazena os nomes no vetor
+    print(rotes);
+    for (var bus in rotes) {
+      if( bus_Letter == bus['letter']) {
+        String name = bus['hour'];
+        print(bus['name']);
+        rotesNames.add(name);
+      }
+    }
+
+    route_list=rotesNames;
+
+
+    return jsonDecode(utf8.decode(response.bodyBytes));
+  }
+  else {
+    throw Exception('Erro ao carregar dados do servidor');
+  }
+}
+
+Future<Map<String, dynamic>> get_Bus() async{
+  SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
+  var url= Uri.parse('http://67.205.172.182:3333/listBus');
+
+  var response= await http.get(url);
+
+  if(response.statusCode == 200){
+    Map<String, dynamic> data = json.decode(response.body);
+    // Obtém a lista de ônibus do mapa
+    List<dynamic> buses = data['bus'];
+
+    // Cria um vetor para armazenar os nomes dos ônibus
+    List<String> busNames = [];
+    bus_list.clear();
+    // Itera sobre a lista de ônibus e armazena os nomes no vetor
+    for (var bus in buses) {
+      String name = bus['name'];
+      busNames.add(name);
+    }
+    bus_list=busNames;
+
+
+    return jsonDecode(utf8.decode(response.bodyBytes));
+  }
+  else {
+    throw Exception('Erro ao carregar dados do servidor');
+  }
+}
+
+String int_to_letter(int number){
+
+    final result = switch (number) {
+      1 => 'A',
+      2 => 'B',
+      3 => 'C',
+      4 => 'D',
+      5 => 'E',
+      6 => 'F',
+      7 => 'G',
+      8 => 'H',
+      9 => 'I',
+      10=> 'J',
+      11=> 'K',
+      12=> 'L',
+
+
+      _ => 'numero maior que 12', //Valor padrão, substitui o default
+    };
+    return result;
+
+  }
+int busName_to_Number(String busname){
+
+  int bus_number;
+  switch(busname) {
+    case 'Onibus 1':
+       bus_number= 1;
+      break;
+
+    case 'Onibus 2':
+      bus_number= 2;
+      break;
+
+    case 'Onibus 3':
+      bus_number= 3;
+      break;
+
+    case 'Onibus 4':
+      bus_number= 4;
+      break;
+
+    case 'Onibus 5':
+      bus_number= 5;
+      break;
+
+
+
+    default: bus_number=0;
+  }
+
+  return bus_number;
+
 }

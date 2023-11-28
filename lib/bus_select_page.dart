@@ -11,37 +11,31 @@ class BusSelectPage extends StatefulWidget {
   State<BusSelectPage> createState() => _BusSelectPageState();
 }
 
-List<String> buss= [
-
-];
-
-var bus_list = [
-  'Onibus 1',
 
 
-];
 
-String selected_route = 'Selecione o onibus';
+String selected_route = 'CCA-07:00-COHAB-PET-JUA';
 String selected_bus = 'Onibus 1';
+ int bus_id=0;
+ int route_id=0;
 
-var route_list = [
-  'Selecione o onibus',
-  'Route 12h',
-];
+ROTA rota_1 = ROTA(1, "CCA-07:00-COHAB-PET-JUA", "E", 7, "CCA","JUA");
+BUS bus_1 = BUS(1,"Onibus 1");
+
+List<BUS> BUS_LIST =[bus_1];
+List<ROTA> ROTA_LIST = [rota_1];
+
 
 
 class _BusSelectPageState extends State<BusSelectPage> {
 
   @override
   void initState() {
-    super.initState();
+    get_Routes();
     get_Bus();
 
+
   }
-// Initial Selected Value
-
-
-  // List of items in our dropdown menu
 
 
   @override
@@ -97,22 +91,26 @@ class _BusSelectPageState extends State<BusSelectPage> {
                         elevation: 16,
                         icon: const Icon(Icons.keyboard_arrow_down,
                             color: const Color(0xFF004AAD)),
-                        items: bus_list.map((String items) {
+                        items: BUS_LIST.map((BUS items) {
                           return (DropdownMenuItem(
-                            value: items,
+                            value: items.name,
                             child: Container(
                               alignment: Alignment.center,
                               width: MediaQuery.of(context).size.width * 0.5,
-                              child: Text(items),
+                              child: Text(items.name),
                             ),
                           ));
                         }).toList(),
                         onChanged: (String? newValue) {
                           setState(() {
                             selected_bus = newValue!;
-                            int temp_bus=busName_to_Number(selected_bus);
-                            print(temp_bus);
-                            get_Routes(temp_bus);
+                            for (var e in BUS_LIST){
+                              if(selected_bus == e.name)
+                                {
+                                  bus_id= e.id;
+                                }
+                            }
+                            
                           });
                         },
                       )),
@@ -129,7 +127,7 @@ class _BusSelectPageState extends State<BusSelectPage> {
                     ),
                     Container(
                       alignment: Alignment.center,
-                      width: MediaQuery.of(context).size.width * 0.75,
+                      width: MediaQuery.of(context).size.width * 0.8,
                       height: 75,
                       decoration: BoxDecoration(
                           color: Colors.white,
@@ -145,20 +143,27 @@ class _BusSelectPageState extends State<BusSelectPage> {
                         elevation: 16,
                         icon: const Icon(Icons.keyboard_arrow_down,
                             color: const Color(0xFF004AAD)),
-                        items: route_list.map((String items) {
+                        items: ROTA_LIST.map((ROTA items) {
                           return (DropdownMenuItem(
-                            value: items,
+                            value: items.name,
                             child: Container(
 
                               alignment: Alignment.center,
-                              width: MediaQuery.of(context).size.width * 0.5,
-                              child: Text(items),
+                              width: MediaQuery.of(context).size.width * 0.65,
+                              child: Text(items.name,style: TextStyle(
+                                fontSize: 18
+                              )),
                             ),
                           ));
                         }).toList(),
                         onChanged: (String? newValue) {
                           setState(() {
                             selected_route = newValue!;
+                            for (var e in ROTA_LIST){
+                              if(e.name == selected_route ){
+                                route_id = e.id;
+                              }
+                            }
 
                           });
                         },
@@ -223,37 +228,28 @@ Future <bool> loggout_Motorist() async{
   return true;
 }
 
-Future<Map<String, dynamic>> get_Routes(int _bus_number) async{
+Future<Map<String, dynamic>> get_Routes() async{
   SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
   var url= Uri.parse('http://67.205.172.182:3333/listRoutes');
 
-  var response= await http.get(url);
+  var response = await http.get(url);
 
   if(response.statusCode == 200){
     Map<String, dynamic> data = json.decode(response.body);
 
-    //Obtém a letra do onibus
-    String bus_Letter= int_to_letter(_bus_number);
-    print(bus_Letter);
-
-    // Obtém a lista de ônibus do mapa
+    // Obtém a lista de rotas
     List<dynamic> rotes = data['routes'];
 
-    // Cria um vetor para armazenar os nomes dos ônibus
-    List<String> rotesNames = [];
+    // Limpa o vetor de rotas
+    ROTA_LIST.clear();
 
-    route_list.clear();
-    // Itera sobre a lista de ônibus e armazena os nomes no vetor
-    print(rotes);
-    for (var bus in rotes) {
-      if( bus_Letter == bus['letter']) {
-        String name = bus['hour'];
-        print(bus['name']);
-        rotesNames.add(name);
-      }
+    // Itera sobre a lista de rotas e armazena  no vetor
+
+    for (var route in rotes) {
+      ROTA_LIST.add(ROTA(route['id'], route['name'], route['letter'], route['hour'],route['from'], route['to']));
+
     }
-
-    route_list=rotesNames;
+    print(ROTA_LIST[0].id);
 
 
     return jsonDecode(utf8.decode(response.bodyBytes));
@@ -274,15 +270,13 @@ Future<Map<String, dynamic>> get_Bus() async{
     // Obtém a lista de ônibus do mapa
     List<dynamic> buses = data['bus'];
 
-    // Cria um vetor para armazenar os nomes dos ônibus
-    List<String> busNames = [];
-    bus_list.clear();
-    // Itera sobre a lista de ônibus e armazena os nomes no vetor
+    // Limpa o vetor BUS LIST
+    BUS_LIST.clear();
+    // Itera sobre a lista de ônibus e armazena  no vetor
     for (var bus in buses) {
-      String name = bus['name'];
-      busNames.add(name);
+      BUS_LIST.add(BUS(bus['id'],bus['name']));
+
     }
-    bus_list=busNames;
 
 
     return jsonDecode(utf8.decode(response.bodyBytes));
@@ -345,4 +339,20 @@ int busName_to_Number(String busname){
 
   return bus_number;
 
+}
+
+class ROTA {
+  final int id;
+  final String name;
+  final String letter;
+  final int hour;
+  final String from;
+  final String to;
+  ROTA(this.id, this.name, this.letter, this.hour, this.from, this.to);
+}
+
+class BUS {
+  final int id;
+  final String name;
+  BUS(this.id, this.name);
 }

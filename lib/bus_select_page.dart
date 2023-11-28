@@ -16,7 +16,8 @@ class BusSelectPage extends StatefulWidget {
 
 String selected_route = 'CCA-07:00-COHAB-PET-JUA';
 String selected_bus = 'Onibus 1';
- int bus_id=0;
+
+int bus_id=0;
  int route_id=0;
 
 ROTA rota_1 = ROTA(1, "CCA-07:00-COHAB-PET-JUA", "E", 7, "CCA","JUA");
@@ -110,7 +111,7 @@ class _BusSelectPageState extends State<BusSelectPage> {
                                   bus_id= e.id;
                                 }
                             }
-                            
+
                           });
                         },
                       )),
@@ -170,7 +171,26 @@ class _BusSelectPageState extends State<BusSelectPage> {
                       )),
                     ),
                     SizedBox(height: 25,),
-                    ElevatedButton(onPressed: (){},
+                    ElevatedButton(
+                        onPressed: ()  async{
+                          bool flag = await set_Route();
+                          if (flag){
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return alert_Sucess;
+                              },
+                            );
+                          }
+                          else{
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return alert_Fail;
+                              },
+                            );
+                          }
+                        },
                       style: ButtonStyle(
                         backgroundColor:  MaterialStatePropertyAll<Color>( Color(0xFF004AAD)),
                         shape: MaterialStateProperty.all<RoundedRectangleBorder>(
@@ -220,6 +240,7 @@ class _BusSelectPageState extends State<BusSelectPage> {
     );
   }
 }
+
 
 
 Future <bool> loggout_Motorist() async{
@@ -284,6 +305,33 @@ Future<Map<String, dynamic>> get_Bus() async{
   else {
     throw Exception('Erro ao carregar dados do servidor');
   }
+}
+
+Future<bool> set_Route() async{
+  SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
+  var url= Uri.parse('http://67.205.172.182:3333/createActiveRoute'); // LocalizaBUS
+
+  var response= await http.post(url,
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, int> {
+      "bus_id": bus_id,
+      "route_id": route_id
+    }),
+
+  );
+  print(jsonDecode(response.body).toString());
+  print(jsonDecode(response.body)['token'].toString());
+  if(response.statusCode == 200){
+    await sharedPreferences.setString('token','${jsonDecode(response.body)['token']}');
+
+    return true;
+  }
+  else {
+    return false;
+  }
+
 }
 
 String int_to_letter(int number){
@@ -356,3 +404,21 @@ class BUS {
   final String name;
   BUS(this.id, this.name);
 }
+
+AlertDialog alert_Fail = AlertDialog(
+  title: Text("Error"),
+  content: Text("Não foi possível ativar sua rota"),
+  backgroundColor: Colors.redAccent[400],
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+  actions: [
+  ],
+);
+AlertDialog alert_Sucess = AlertDialog(
+  title: Text("Tudo certo!"),
+  content: Text("Sua rota foi ativada"),
+  backgroundColor: Colors.green[400],
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  actions: [
+  ],
+);

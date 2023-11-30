@@ -14,14 +14,14 @@ class BusSelectPage extends StatefulWidget {
 
 
 
-String selected_route = 'CCA-07:00-COHAB-PET-JUA';
-String selected_bus = 'Onibus 1';
+String selected_route = 'Selecione';
+String selected_bus =  'Selecione';
 
 int bus_id=0;
- int route_id=0;
+int route_id=0;
 
-ROTA rota_1 = ROTA(1, "CCA-07:00-COHAB-PET-JUA", "E", 7, "CCA","JUA");
-BUS bus_1 = BUS(1,"Onibus 1");
+ROTA rota_1 = ROTA(0, "Selecione", " ", 7, "CCA","JUA");
+BUS bus_1 = BUS(0,"Selecione");
 
 List<BUS> BUS_LIST =[bus_1];
 List<ROTA> ROTA_LIST = [rota_1];
@@ -34,7 +34,6 @@ class _BusSelectPageState extends State<BusSelectPage> {
   void initState() {
     get_Routes();
     get_Bus();
-
 
   }
 
@@ -163,6 +162,7 @@ class _BusSelectPageState extends State<BusSelectPage> {
                             for (var e in ROTA_LIST){
                               if(e.name == selected_route ){
                                 route_id = e.id;
+
                               }
                             }
 
@@ -173,23 +173,23 @@ class _BusSelectPageState extends State<BusSelectPage> {
                     SizedBox(height: 25,),
                     ElevatedButton(
                         onPressed: ()  async{
+                          if(route_id == 0 || bus_id == 0){
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return alert_Select;
+                              },
+                            );
+                            return;
+                          }
                           bool flag = await set_Route();
-                          if (flag){
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return alert_Sucess;
-                              },
-                            );
-                          }
-                          else{
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return alert_Fail;
-                              },
-                            );
-                          }
+
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return flag ? alert_Sucess : alert_Fail;
+                            },
+                          );
                         },
                       style: ButtonStyle(
                         backgroundColor:  MaterialStatePropertyAll<Color>( Color(0xFF004AAD)),
@@ -239,6 +239,67 @@ class _BusSelectPageState extends State<BusSelectPage> {
       ),
     );
   }
+
+  Future<Map<String, dynamic>> get_Routes() async{
+    // SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
+    var url= Uri.parse('http://67.205.172.182:3333/listRoutes');
+
+    var response = await http.get(url);
+
+    if(response.statusCode == 200){
+      Map<String, dynamic> data = json.decode(response.body);
+
+      // Obtém a lista de rotas
+      List<dynamic> rotes = data['routes'];
+
+      // Limpa o vetor de rotas
+      ROTA_LIST.clear();
+      ROTA_LIST.add(rota_1);
+
+      // Itera sobre a lista de rotas e armazena  no vetor
+
+      for (var route in rotes) {
+        ROTA_LIST.add(ROTA(route['id'], route['name'], route['letter'], route['hour'],route['from'], route['to']));
+
+      }
+      setState(() {});
+      // print(ROTA_LIST[0].id);
+      return jsonDecode(utf8.decode(response.bodyBytes));
+    }
+
+    else {
+      throw Exception('Erro ao carregar dados do servidor');
+    }
+  }
+
+  Future<Map<String, dynamic>> get_Bus() async{
+    SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
+    var url= Uri.parse('http://67.205.172.182:3333/listBus');
+
+    var response= await http.get(url);
+
+    if(response.statusCode == 200){
+      Map<String, dynamic> data = json.decode(response.body);
+      // Obtém a lista de ônibus do mapa
+      List<dynamic> buses = data['bus'];
+
+      // Limpa o vetor BUS LIST
+      BUS_LIST.clear();
+      BUS_LIST.add(bus_1);
+      // Itera sobre a lista de ônibus e armazena  no vetor
+      for (var bus in buses) {
+        BUS_LIST.add(BUS(bus['id'],bus['name']));
+
+      }
+
+      setState(() {});
+
+      return jsonDecode(utf8.decode(response.bodyBytes));
+    }
+    else {
+      throw Exception('Erro ao carregar dados do servidor');
+    }
+  }
 }
 
 
@@ -249,63 +310,7 @@ Future <bool> loggout_Motorist() async{
   return true;
 }
 
-Future<Map<String, dynamic>> get_Routes() async{
-  SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
-  var url= Uri.parse('http://67.205.172.182:3333/listRoutes');
 
-  var response = await http.get(url);
-
-  if(response.statusCode == 200){
-    Map<String, dynamic> data = json.decode(response.body);
-
-    // Obtém a lista de rotas
-    List<dynamic> rotes = data['routes'];
-
-    // Limpa o vetor de rotas
-    ROTA_LIST.clear();
-
-    // Itera sobre a lista de rotas e armazena  no vetor
-
-    for (var route in rotes) {
-      ROTA_LIST.add(ROTA(route['id'], route['name'], route['letter'], route['hour'],route['from'], route['to']));
-
-    }
-    print(ROTA_LIST[0].id);
-
-
-    return jsonDecode(utf8.decode(response.bodyBytes));
-  }
-  else {
-    throw Exception('Erro ao carregar dados do servidor');
-  }
-}
-
-Future<Map<String, dynamic>> get_Bus() async{
-  SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
-  var url= Uri.parse('http://67.205.172.182:3333/listBus');
-
-  var response= await http.get(url);
-
-  if(response.statusCode == 200){
-    Map<String, dynamic> data = json.decode(response.body);
-    // Obtém a lista de ônibus do mapa
-    List<dynamic> buses = data['bus'];
-
-    // Limpa o vetor BUS LIST
-    BUS_LIST.clear();
-    // Itera sobre a lista de ônibus e armazena  no vetor
-    for (var bus in buses) {
-      BUS_LIST.add(BUS(bus['id'],bus['name']));
-
-    }
-
-
-    return jsonDecode(utf8.decode(response.bodyBytes));
-  }
-  else {
-    throw Exception('Erro ao carregar dados do servidor');
-  }
-}
 
 Future<bool> set_Route() async{
   SharedPreferences sharedPreferences= await SharedPreferences.getInstance();
@@ -315,18 +320,16 @@ Future<bool> set_Route() async{
     headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
     },
-    body: jsonEncode(<String, int> {
+    body: jsonEncode({
       "bus_id": bus_id,
       "route_id": route_id
     }),
 
   );
-  print(jsonDecode(response.body).toString());
-  print(jsonDecode(response.body)['token'].toString());
-  if(response.statusCode == 200){
-    await sharedPreferences.setString('token','${jsonDecode(response.body)['token']}');
 
-    return true;
+
+  if(response.statusCode == 200){
+      return true;
   }
   else {
     return false;
@@ -405,6 +408,15 @@ class BUS {
   BUS(this.id, this.name);
 }
 
+AlertDialog alert_Select = AlertDialog(
+  title: Text("Error"),
+  content: Text("Selecione o ônibus e a rota"),
+  backgroundColor: Colors.yellow,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+  actions: [
+  ],
+);
 AlertDialog alert_Fail = AlertDialog(
   title: Text("Error"),
   content: Text("Não foi possível ativar sua rota"),

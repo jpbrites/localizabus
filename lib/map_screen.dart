@@ -18,13 +18,12 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   LatLng initialLocation = const LatLng(-9.378346, -40.526745);
-  BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarker;
+  Map<String, BitmapDescriptor> markerIcons = {};
 
   Timer? timer;
-  Set<MapMarker> busMarkers = <MapMarker>{}, stopMarkers = <MapMarker>{};
+  List<Marker> busMarkers = [], stopMarkers = [];
   late GoogleMapController mapController;
   WebSocketChannel? channel;
-  bool showStops = false;
   int route = 0;
 
   @override
@@ -34,21 +33,43 @@ class _MapScreenState extends State<MapScreen> {
 
     fetchDataFromHTTP(false);
     fetchDataFromHTTP(true);
-    timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       //job
       fetchDataFromHTTP(true);
     });
   }
 
+  BitmapDescriptor getIcon(String name){
+    var icon = markerIcons[name];
+    if(icon == null){
+      return markerIcons["MARKER"]??BitmapDescriptor.defaultMarker;
+    }
+
+    return icon;
+  }
+
   void addCustomIcon() {
-    
+    var list = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "L", "DEFAULT"];
+
+    list.forEach((element) {
+      BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(),
+        'assets/bus_$element.png',
+      ).then(
+            (icon) {
+          setState(() {
+            markerIcons[element == "DEFAULT" ? "?" : element] = icon;
+          });
+        },
+      );
+    });
     BitmapDescriptor.fromAssetImage(
       ImageConfiguration(),
-      "assets/bus_A.png",
+      'assets/marker_final.png',
     ).then(
-      (icon) {
+          (icon) {
         setState(() {
-          markerIcon = icon;
+          markerIcons["MARKER"] = icon;
         });
       },
     );
@@ -56,7 +77,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void fetchDataFromHTTP(bool isCoordinate, { int attemptsLeft = 3  }) async {
     String url = 'http://67.205.172.182:3333/list${isCoordinate ? 'Coordinates' : 'Stops'}';
-    var newMarkers = <MapMarker>{};
+    List<Marker> newMarkers = [];
     final http.Response response;
 
     if(route != 0){
@@ -77,15 +98,32 @@ class _MapScreenState extends State<MapScreen> {
       }
       print("Adding default markers");
       newMarkers.add(
-          MapMarker(
-            name: "Marker 1",
-            position: const LatLng(-9.412412, -40.505632),
-          )
+        Marker(
+            markerId: const MarkerId("A"),
+            position: const LatLng(-9.400176, -40.496104),
+            icon: getIcon("A"),
+            infoWindow: const InfoWindow(
+                title: "A"
+            ),
+          onTap: (){
+              route = route == 1 ? 0 : 1;
+              if(route != 0){
+                fetchDataFromHTTP(false);
+              }
+              setState(() {});
+          },
+          zIndex: 10
+        )
       );
       newMarkers.add(
-          MapMarker(
-            name: "Marker 2",
-            position: const LatLng(-9.400176, -40.496104),
+          Marker(
+              markerId: const MarkerId("B"),
+              position: const LatLng(-9.412412, -40.505632),
+              icon: getIcon("B"),
+              infoWindow: const InfoWindow(
+                  title: "B"
+              ),
+              zIndex: 10
           )
       );
 
@@ -113,15 +151,31 @@ class _MapScreenState extends State<MapScreen> {
       double lat = double.parse(coordinate["lat"]);
       double lng = double.parse(coordinate["long"]);
       String name = coordinate[isCoordinate ? "letter" : "name"].toString();
+      String time = coordinate["created_at"].toString();
+      int currentRoute = isCoordinate ? coordinate["route_id"]??0 : 0;
       if(!isCoordinate && route != 0){
         name += ' ${coordinate["date"].toString()}';
       }
 
       print("Latitude: $lat, Longitude: $lng, Name: $name ");
       newMarkers.add(
-        MapMarker(
-          name: name,
-          position: LatLng(lat, lng),
+        Marker(
+            markerId: MarkerId(name + time),
+            position: LatLng(lat, lng),
+            icon: getIcon(name),
+            infoWindow: InfoWindow(
+                title: name
+            ),
+          onTap: (){
+              if(isCoordinate){
+                route = route == currentRoute ? 0 : currentRoute;
+                if(route != 0){
+                  fetchDataFromHTTP(false);
+                }
+                setState(() {});
+              }
+          },
+          zIndex: isCoordinate ? 10 : 0
         )
       );
     }
@@ -129,7 +183,13 @@ class _MapScreenState extends State<MapScreen> {
     if(newMarkers.isEmpty){
       print("Received empty values");
       sleep(const Duration(seconds: 1));
-      fetchDataFromHTTP(isCoordinate, attemptsLeft: attemptsLeft - 1);
+      if(isCoordinate){
+        fetchDataFromHTTP(isCoordinate, attemptsLeft: attemptsLeft - 1);
+      }else{
+        setState(() {
+          stopMarkers = [];
+        });
+      }
       return;
     }
 
@@ -184,43 +244,13 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     Set<Marker> markers = <Marker>{};
-    if(showStops){
+    if(route != 0){
       for (var element in stopMarkers) {
-        markers.add(
-            Marker(
-              markerId: MarkerId(element.name),
-              position: element.position,
-              infoWindow: InfoWindow(
-                  title: element.name
-              ),
-            )
-        );
+        markers.add(element);
       }
     }
     for (var element in busMarkers) {
-      markers.add(
-        Marker(
-          markerId: MarkerId(element.name),
-          position: element.position,
-          icon: markerIcon,
-          infoWindow: InfoWindow(
-            title: element.name,
-            onTap: (){
-              showStops ^= true;
-              if(showStops){
-                fetchDataFromHTTP(false);
-              }else{
-                setState(() {});
-              }
-            }
-          ),
-          onTap: (){
-            print("Clicked");
-            route ^= 1;
-            fetchDataFromHTTP(false);
-          }
-        )
-      );
+      markers.add(element);
     }
 
     return Scaffold(

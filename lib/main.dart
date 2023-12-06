@@ -25,6 +25,7 @@ class _MyAppState extends State<MyApp> {
         '/home-screen': (context) => const MapScreen(),
         '/login-screen': (context) => const LoginScreen(),
         '/busSelectPage': (context) => const BusSelectPage(),
+        /*'/': (context) => const BusSelectPage(),*/
       },
     );
   }

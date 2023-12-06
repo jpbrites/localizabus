@@ -21,11 +21,11 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       locale: const Locale('pt', 'BR'),
       routes: {
-        /*'/': (context) => const SplashScreen(),
+        '/': (context) => const SplashScreen(),
         '/home-screen': (context) => const MapScreen(),
         '/login-screen': (context) => const LoginScreen(),
         '/busSelectPage': (context) => const BusSelectPage(),
-        */'/': (context) => const BusSelectPage(),
+        /*'/': (context) => const BusSelectPage(),*/
       },
     );
   }
